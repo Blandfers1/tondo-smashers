@@ -29,26 +29,27 @@ score = [0, 0]  # player scores. [P1, P2]
 round_over = False
 ROUND_OVER_COOLDOWN = 2000
 game_started = False
+selected_characters = [0, 0]
 
 # Define initial y-coordinate position for fighters
 initial_y_position = 400
 
 # Define fighter variables
-knight_size = 180
+knight_size = (180, 180)
 knight_scale = 3
 knight_offset = [72, 56]
 knight_data = [knight_size, knight_scale, knight_offset]
-hero_size = 200
+hero_size = (200, 200)
 hero_scale = 4
 hero_offset = [112, 80]
 hero_data = [hero_size, hero_scale, hero_offset]
-samurai_size = 220
+samurai_size = (200,200)
 samurai_scale = 3
 samurai_offset = [100, 70]
 samurai_data = [samurai_size, samurai_scale, samurai_offset]
-king_size = 210
+king_size = (200)
 king_scale = 3
-king_offset = [90, 70]
+king_offset = [90, 50]
 king_data = [king_size, king_scale, king_offset]
 
 # Load music and sounds
@@ -81,11 +82,16 @@ hero_icon = pygame.image.load(os.path.join(current_dir, "assets/images/sprites/M
 samurai_icon = pygame.image.load(os.path.join(current_dir, "assets/images/sprites/Samurai/Sprites/icon.png")).convert_alpha()
 king_icon = pygame.image.load(os.path.join(current_dir, "assets/images/sprites/King/Sprites/icon.png")).convert_alpha()
 
-# Load main menu images
+# Load main menu images and scale them to smaller sizes
 start_img = pygame.image.load(os.path.join(current_dir, "assets/icons/start.png")).convert_alpha()
 option_img = pygame.image.load(os.path.join(current_dir, "assets/icons/option.png")).convert_alpha()
 quit_img = pygame.image.load(os.path.join(current_dir, "assets/icons/quit.png")).convert_alpha()
 title_img = pygame.image.load(os.path.join(current_dir, "assets/icons/title.png")).convert_alpha()
+
+# Scale main menu images
+start_img = pygame.transform.scale(start_img, (200, 80))
+option_img = pygame.transform.scale(option_img, (200, 80))
+quit_img = pygame.transform.scale(quit_img, (200, 80))
 
 # Print the sprite sheet sizes for debugging
 print(f"Knight sheet dimensions: {knight_sheet.get_size()}")
@@ -97,7 +103,7 @@ print(f"King sheet dimensions: {king_sheet.get_size()}")
 knight_animation_steps = [11, 8, 3, 7, 7, 4, 11]
 hero_animation_steps = [8, 8, 2, 6, 6, 4, 4, 6]
 samurai_animation_steps = [4, 8, 2, 4, 4, 3, 7]
-king_animation_steps = [8, 8, 2, 4, 4, 4, 4, 6]
+king_animation_steps = [8, 8, 6, 4, 4, 4, 6]
 
 count_font = pygame.font.Font(os.path.join(current_dir, "assets/fonts/tekken6.ttf"), 80)
 score_font = pygame.font.Font(os.path.join(current_dir, "assets/fonts/tekken6.ttf"), 30)
@@ -181,9 +187,8 @@ def main_menu():
                         exit()
                 draw_menu()
 
-main_menu()
-
 def character_selection():
+    global selected_characters
     selected_characters = [0, 0]
     player_selected = [False, False]
     characters = ["knight", "hero", "samurai", "king"]
@@ -252,14 +257,14 @@ def character_selection():
 
     game_started = True
     main(selected_characters)
-    character_selection()
-
-
 
 
 # Main function to initialize the game
 def main(selected_characters):
-    # Fighter instances based on selection
+    fighter_1, fighter_2 = create_fighters(selected_characters)
+    run_game(fighter_1, fighter_2, selected_characters)
+
+def create_fighters(selected_characters):
     if selected_characters[0] == 0:
         fighter_1 = Fighter(1, 200, initial_y_position, False, knight_data, knight_sheet, knight_animation_steps, sword_fx)
     elif selected_characters[0] == 1:
@@ -278,10 +283,13 @@ def main(selected_characters):
     elif selected_characters[1] == 3:
         fighter_2 = Fighter(2, 800, initial_y_position, True, king_data, king_sheet, king_animation_steps, sword_fx)
     
-    run_game(fighter_1, fighter_2)
+    return fighter_1, fighter_2
+
 
 # Main game loop
-def run_game(fighter_1, fighter_2):
+def run_game(fighter_1, fighter_2, selected_characters):
+    global round_over
+    global score
     run = True
     while run:
         clock.tick(FPS)
@@ -291,7 +299,12 @@ def run_game(fighter_1, fighter_2):
         draw_health_bar(fighter_1.health, 20, 20)
         draw_health_bar(fighter_2.health, screen_width - 420, 20)
         draw_text("P1: " + str(score[0]), score_font, RED, 20, 60)
-        draw_text("P2: " + str(score[1]), score_font, RED, screen_width - 80, 60)
+          # Adjusted x-coordinate for player 2 score
+
+        # Adjusted x-coordinate for player 2 score
+        score_text_width = score_font.size("P2: " + str(score[1]))[0]
+        score_x_p2 = screen_width - score_text_width - 20
+        draw_text("P2: " + str(score[1]), score_font, RED, score_x_p2, 60)
 
         # Move fighters
         fighter_1.move(screen_width, screen_height, screen, fighter_2, round_over)
@@ -317,9 +330,12 @@ def run_game(fighter_1, fighter_2):
                 round_over_time = pygame.time.get_ticks()
         else:
             if pygame.time.get_ticks() - round_over_time > ROUND_OVER_COOLDOWN:
-                round_over = False
-                fighter_1 = Fighter(1, 200, initial_y_position, False, knight_data, knight_sheet, knight_animation_steps, sword_fx)
-                fighter_2 = Fighter(2, 800, initial_y_position, True, knight_data, knight_sheet, knight_animation_steps, sword_fx)
+                if score[0] == 3 or score[1] == 3:
+                    display_winner(score)
+                    run = False
+                else:
+                    fighter_1, fighter_2 = create_fighters(selected_characters)
+                    round_over = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -328,6 +344,15 @@ def run_game(fighter_1, fighter_2):
         pygame.display.update()
     
     pygame.quit()
+
+def display_winner(score):
+    draw_bg()
+    if score[0] == 3:
+        screen.blit(player1_wins_img, ((screen_width - player1_wins_img.get_width()) // 2, screen_height // 2 - player1_wins_img.get_height() // 2))
+    elif score[1] == 3:
+        screen.blit(player2_wins_img, ((screen_width - player2_wins_img.get_width()) // 2, screen_height // 2 - player2_wins_img.get_height() // 2))
+    pygame.display.update()
+    pygame.time.delay(3000)
 
 # Start the game
 main_menu()

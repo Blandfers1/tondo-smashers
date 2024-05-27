@@ -28,14 +28,14 @@ class Fighter:
         animation_list = []
         for y, animation in enumerate(animation_steps):
             temp_img_list = []
-            for x in range(animation):
-                x_pos = x * self.size
-                y_pos = y * self.size
-                if x_pos + self.size <= sprite_sheet.get_width() and y_pos + self.size <= sprite_sheet.get_height():
-                    temp_img = sprite_sheet.subsurface(x_pos, y_pos, self.size, self.size)
-                    temp_img_list.append(pygame.transform.scale(temp_img, (self.size * self.image_scale, self.size * self.image_scale)))
-                else:
-                    print(f"Invalid subsurface rectangle at ({x_pos}, {y_pos}), size: {self.size}")
+        for x in range(animation):
+            x_pos = x * self.size[0]
+            y_pos = y * self.size[1]
+            if x_pos + self.size[0] <= sprite_sheet.get_width() and y_pos + self.size[1] <= sprite_sheet.get_height():
+                temp_img = sprite_sheet.subsurface(x_pos, y_pos, self.size[0], self.size[1])
+                temp_img_list.append(pygame.transform.scale(temp_img, (self.size[0] * self.image_scale, self.size[1] * self.image_scale)))
+            else:
+                print(f"Invalid subsurface rectangle at ({x_pos}, {y_pos}), size: {self.size}")
             animation_list.append(temp_img_list)
         return animation_list
 
